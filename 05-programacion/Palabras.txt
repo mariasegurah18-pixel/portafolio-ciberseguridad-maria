@@ -1,0 +1,9 @@
+ prueba 
+escuela 
+ahorcado
+palabra 
+colegio
+casa
+mesa
+camisa
+phython
