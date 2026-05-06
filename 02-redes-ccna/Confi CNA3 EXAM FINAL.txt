@@ -1,0 +1,209 @@
+BORDE
+router ospf 19
+ router-id 7.7.7.7
+network 10.0.0.3 0.0.0.15 area 0
+ip route 0.0.0.0 0.0.0.0 serial0/1/0
+router ospf 19
+default-information originate
+passive-interface Serial 0/1/0
+ exit
+
+access-list 19 permit 192.168.0.0 0.0255.255
+access-list 19 permit 172.16.0.0 0.0.255.255
+ip nat inside source list 19 interface Serial 0/1/0 overload
+
+interface Serial 0/1/0
+ip nat outside
+interface Giga 0/0/0
+ip nat inside
+
+ip access-list extended NAVEGACION
+permit tcp 192.168.10.0 0.0.0.255 any eq 80
+permit tcp 192.168.20.0 0.0.0.255 any eq 80
+permit tcp 172.16.10.0 0.0.0.255 any eq 80
+permit tcp 172.16.20.0 0.0.0.255 any eq 80
+permit tcp 192.168.10.0 0.0.0.255 any eq 443
+permit tcp 192.168.20.0 0.0.0.255 any eq 443
+permit tcp 172.16.10.0 0.0.0.255 any eq 443
+permit tcp 172.16.20.0 0.0.0.255 any eq 443
+permit ospf any any
+
+interface Giga 0/0/0
+ip access-group NAVEGACION out
+
+ip access-list extended RESPUESTA
+permit tcp any any eq 80 established
+permit tcp any any eq 443 established
+
+interface Serial 0/1/0
+ip access-group RESPUESTA in
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+---------------------------------------------------------------------------------------------------------
+SITIO 1 
+router ospf 19
+ router-id 1.1.1.1
+network 10.0.0.1 0.0.0.15 area 0
+network 10.0.0.21 0.0.0.3 area 0
+network 10.0.0.17 0.0.0.3 area 0
+interface gigabitEthernet0/0/1
+ip ospf network point-to-point
+ exit
+interface  serial0/1/0
+ip ospf network point-to-point
+exit
+
+enable secret Class123 
+line vty 0 5
+login local
+transport input ssh
+service password-encryption
+username ENSA secret Cisco123
+ip domain-name miempresa.com
+crypto key generate rsa               modulus 1024
+ip ssh version 2
+
+ip access-list extended  ACCESOVTY
+permit tcp host 192.168.20.10 any eq 22
+deny ip  any any
+
+line vty 0 5
+login local
+access-class ACCESOVTY in
+transport input ssh
+end
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+-----------------------------------------------------------------------------------------------------------
+SITIO 2
+router ospf 19
+ router-id 2.2.2.2
+network 10.0.0.2 0.0.0.15 area 0
+network 10.0.0.29 0.0.0.3 area 0
+network 10.0.0.25 0.0.0.3 area 0
+interface gigabitEthernet0/0/1
+ ip ospf network point-to-point
+ exit
+interface  serial0/1/0
+ip ospf network point-to-point
+exit
+
+enable secret Class123 
+line vty 0 5
+ login local
+transport input ssh
+service password-encryption
+username ENSA secret Cisco123
+ip domain-name miempresa.com
+crypto key generate rsa                modulus 1024
+ip ssh version 2
+
+ip access-list standard ACCESOVTY
+permit host 192.168.20.10
+deny any
+
+line vty 0 5
+login local
+access-class ACCESO_VTY in
+transport input ssh
+end
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+---------------------------------------------------------------------------------------------------------
+R3
+router ospf 19
+ router-id 3.3.3.3
+network 10.0.0.18 0.0.0.0 area 0 
+network 192.168.10.1 0.0.0.0 area 0 
+network 192.168.20.1 0.0.0.0 area 0 
+passive-interface gigabitEthernet0/2
+passive-interface VLAN10
+passive-interface VLAN20
+interface gigabitEthernet0/1
+ ip ospf network point-to-point
+ exit
+
+access-list 15 deny  192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+access-list 15 permit   any
+
+interface Vlan 10
+ip access-group 15 out
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+---------------------------------------------------------------------------------------------------------
+R4
+router ospf 19
+ router-id 4.4.4.4
+passive-interface gigabitEthernet0/0/0
+
+
+interface gigabitEthernet0/0/0
+ip ospf 19 area 0 
+exit
+
+interface serial0/1/0
+ip ospf 19 area 0 
+exit
+
+interface  serial0/1/0
+ ip ospf network point-to-point
+ exit
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+---------------------------------------------------------------------------------------------------------
+R5
+router ospf 19
+ router-id 5.5.5.5
+network 10.0.0.26 0.0.0.0 area 0 
+network 172.16.10.1 0.0.0.0 area 0 
+network 172.16.20.1 0.0.0.0 area 0 
+passive-interface gigabitEthernet0/2
+passive-interface VLAN10
+passive-interface VLAN20
+
+interface gigabitEthernet0/1
+ ip ospf network point-to-point
+ exit
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+----------------------------------------------------------------------------------------------------------
+R6
+router ospf 19
+ router-id 6.6.6.6
+passive-interface gigabitEthernet0/0/0
+
+interface gigabitEthernet0/0/0
+ip ospf 19 area 0 
+
+interface serial0/1/0
+ip ospf 19 area 0 
+ip ospf network point-to-point
+exit
+
+
+ntp server 10.10.10.130
+service timestamps log datetime msec
+logging 10.10.10.10
+---------------------------------------------------------------------------------------------------------
+
+
+
+no ip access-list standard ACCESOVTY
+no permit host 192.168.20.10
+no deny any
+
+line vty 0 4
+no access-class ACCESOVTY in
+no login
+no  transport input ssh

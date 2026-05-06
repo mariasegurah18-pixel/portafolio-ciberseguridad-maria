@@ -1,0 +1,59 @@
+Las ACL  se van a configurar  en Caldera y Zona Franca 
+
+Caldera 
+ip access-list standard  SSH_PC0
+permit  192.168.10.11 
+
+VTY Caldera        Las listas de vty siempre van a ser estandar 
+line vty 0 4
+access-class SSH_PC0 in
+login local
+transport input ssh
+
+2 paso 
+Se tiene que crear una ACL para el trafico de http para eso tenemos que sumarizar las redes y luego crear la ACL esto se aplica al router fronterizo 
+
+ip access-list extended Navegacion
+ permit tcp 172.17.0.0 0.0.0.255 any eq 80
+ permit tcp 172.16.0.0 0.0.3.255 any eq 80
+ permit tcp 192.168.0.0 0.0.127.255 any eq 80
+ permit tcp 172.17.0.0 0.0.0.255 any eq 443
+ permit tcp 172.16.0.0 0.0.3.255 any eq 443
+ permit tcp 192.168.0.0 0.0.127.255 any eq 443
+
+ip access-list extended Respuesta
+ permit tcp any 172.17.0.0 0.0.0.255 established
+ permit tcp any 172.16.0.0 0.0.3.255 established
+ permit tcp any 192.168.0.0 0.0.127.255 established
+
+interface s0/0/0
+ip access-group Navegacion out
+ ip access-group Respuesta in
+
+172.16.0.0/23      10101100.00010000.000000|00.00000000
+172.16.2.0/25      10101100.00010000.000000|10.00000000
+172.16.0.0 /22      10101100.00010000.00000000.00000000
+
+192.168.1.0/24      11000000.10101000.0|0001010.00000000
+192.168.99.0/24   11000000.10101000.0|1100011.00000000
+192.168.0.0/17       11000000.10101000.0|0000000.00000000  wildcard 0.0.255.255
+
+Vlan  10 
+ access-list 1 deny 192.168.10.0  0.0.0.255
+access-list 1 permit any 
+
+interface  gi0/1
+ ip access-group 1 out     
+
+4 paso  ZONA_FRANCA
+username roctov secret Cisco123
+hostname ZONA_FRANCA
+ip domain-name cisco.com
+crypto key generate rsa 1024
+ ip ssh version 2
+line vty 0 4
+transport input ssh
+login local
+exit
+end
+write memory 

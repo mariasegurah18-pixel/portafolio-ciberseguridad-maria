@@ -1,0 +1,264 @@
+R1 
+Area o es para que sea area unica 
+router ospf 43   /   PROCESS  ID 
+router-id 1.1.1.1   /  ESTE ES EL ROUTER ID 
+network 172.16.2.128 0.0.0.15 area 0  /RUTA POR DIRECCION DE RED = ip de la red y wilcard
+passive-interface serial0/1/0    / RUTA PASIVA va un dispositivo final 
+auto-cost reference-bandwidth 1000
+
+interface gigabitEthernet0/0/0
+ ip ospf hello-interval 5
+ ip ospf dead-interval 20
+ ip nat inside
+ exit
+
+router ospf 43
+ default-information originate
+ exit
+
+interface serial0/1/0
+ ip nat outside
+ no cdp enable
+ exit
+access-list 1 permit 10.0.0.0 0.0.0.15
+access-list 1 permit 172.16.0.0 0.0.3.255
+access-list 1 permit 192.168.0.0 0.0.127.255
+
+ip nat inside source list 1 interface serial0/1/0 overload
+ip route 0.0.0.0 0.0.0.0 serial0/1/0
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+
+
+
+ip access-list extended TRAFICO_RED_in 
+permit udp 10.0.0.0 0.0.0.15 host 100.100.100.101 eq 53
+ permit tcp 10.0.0.0 0.0.0.15 host 100.100.100.101 eq 53
+ permit udp 172.16.0.0 0.0.3.255 host 100.100.100.101 eq 53
+ permit tcp 172.16.0.0 0.0.3.255 host 100.100.100.101 eq 53
+ permit udp 192.168.0.0 0.0.127.255 host 100.100.100.101 eq 53
+ permit tcp 192.168.0.0 0.0.127.255 host 100.100.100.101 eq 53
+
+permit ospf 10.0.0.0 0.0.0.15 host 172.16.2.129
+permit ospf 172.16.0.0 0.0.3.255 host 172.16.2.129
+permit ospf 192.168.0.0 0.0.127.255 host 172.16.2.129
+
+ permit icmp 10.0.0.0 0.0.0.15 host 172.16.2.129
+permit icmp 172.16.0.0 0.0.3.255 host 172.16.2.129
+permit icmp 192.168.0.0 0.0.127.255 host 172.16.2.129
+
+
+ip access-list extended TRAFICO_RED_out
+ permit tcp 10.0.0.0 0.0.0.15 host 100.100.100.100 eq 80
+ permit tcp 10.0.0.0 0.0.0.15 host 100.100.100.100 eq 443
+ permit tcp 172.16.0.0 0.0.3.255 host 100.100.100.100 eq 80
+permit tcp 172.16.0.0 0.0.3.255 host 100.100.100.100 eq 443
+permit tcp 192.168.0.0 0.0.127.255 host 100.100.100.100 eq 80
+ permit tcp 192.168.0.0 0.0.127.255 host 100.100.100.100 eq 443
+
+ permit ospf host 172.16.2.129 10.0.0.0 0.0.0.15 
+permit ospf host 172.16.2.129 172.16.0.0 0.0.3.255
+ permit ospf host 172.16.2.129 192.168.0.0 0.0.127.255 
+
+permit icmp 10.0.0.0 0.0.0.15 host 172.16.2.129
+ permit icmp 172.16.0.0 0.0.3.255 host 172.16.2.129
+ permit icmp 192.168.0.0 0.0.127.255 host 172.16.2.129
+deny ip any any
+ exit
+ 
+---------------------------------------------------------------------------------------------------------
+R2
+router ospf 43
+router-id 2.2.2.2
+network 172.16.2.130 0.0.0.0 area 0   / RUTA POR DIRECCION DE PUERTO = IP DEL PUERTO Y 0.0.0.0
+network 10.0.0.1 0.0.0.0 area 0
+network 10.0.0.5 0.0.0.0 area 0
+auto-cost reference-bandwidth 1000
+exit
+
+interface gigabitEthernet0/0/0
+ ip ospf hello-interval 5
+ ip ospf dead-interval 20
+ ip ospf priority 255
+ exit
+interface gigabitEthernet0/0/1
+ ip ospf network point-to-point
+ exit
+interface serial0/1/0
+ ip ospf cost 100
+ exit
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+--------------------------------------------------------------------------------------------------------
+R3
+router ospf 43
+router-id 3.3.3.3
+ network 10.0.0.8 0.0.0.3 area 0
+ network 10.0.0.12 0.0.0.3 area 0
+ network 172.16.2.128 0.0.0.15 area 0
+auto-cost reference-bandwidth 1000
+ exit
+interface serial0/1/1
+ ip ospf cost 100
+ exit
+interface serial0/1/0
+ ip ospf cost 100
+ exit
+interface gigabitEthernet0/0/0
+ ip ospf hello-interval 5
+ ip ospf dead-interval 20
+ip ospf priority 0
+ exit
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+---------------------------------------------------------------------------------------------------------
+R4
+router ospf 43
+router-id 4.4.4.4
+network 172.16.2.131 0.0.0.0 area 0
+network 172.16.2.65 0.0.0.0 area 0
+passive-interface gigabitEthernet0/0/1
+auto-cost reference-bandwidth 1000
+exit
+interface gigabitEthernet0/0/0
+ ip ospf hello-interval 5
+ ip ospf dead-interval 20
+ip ospf priority 0
+ exit
+
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+-----------------------------------------------------------------------------------------------------------
+R5
+router ospf 43
+router-id 5.5.5.5
+network 10.0.0.8 0.0.0.3 area 0
+network 172.16.2.96 0.0.0.31 area 0
+passive-interface gigabitEthernet0/0/0
+ auto-cost reference-bandwidth 1000
+ exit
+
+interface serial0/1/0
+ip ospf 19 area 0 
+ip ospf cost 100
+exit
+
+interface gigabitEthernet0/0/0
+ip ospf 43 area 0 
+exit
+
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+---------------------------------------------------------------------------------------------------------
+R6
+router ospf 43
+router-id 6.6.6.6
+ network 172.16.0.1 0.0.0.0 area 0
+ network 10.0.0.14 0.0.0.0 area 0
+ passive-interface gigabitEthernet0/0/0
+ auto-cost reference-bandwidth 1000
+ exit
+
+interface serial0/1/1
+ ip ospf cost 100
+ exit
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+--------------------------------------------------------------------------------------------------------
+R7
+router ospf 43
+router-id 7.7.7.7
+passive-interface gigabitEthernet0/0/0
+auto-cost reference-bandwidth 1000
+
+interface gigabitEthernet0/0/0       / este es OSPF POR PUERTO no se usa  IP 
+ip ospf 43 area 0
+exit
+
+interface serial0/1/0
+ ip ospf 43 area 0
+ ip ospf cost 100
+ exit
+enable secret Class123 
+line vty 0 4
+ password Telnet123
+ login
+transport input ssh
+
+ip access-list standard ACCESOVTY 
+ permit host 172.16.2.67
+line vty 0 4 
+access-class ACCESOVTY in
+ exit
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+----------------------------------------------------------------------------------------------------------
+R8
+router ospf 43
+router-id 8.8.8.8
+ network 10.0.0.0 0.0.0.3 area 0
+ network 192.168.10.0 0.0.0.255 area 0
+ network 192.168.20.0 0.0.0.255 area 0
+ network 192.168.30.0 0.0.0.255 area 0
+ network 192.168.40.0 0.0.0.255 area 0
+ network 192.168.50.0 0.0.0.255 area 0
+ network 192.168.60.0 0.0.0.255 area 0
+ network 192.168.99.0 0.0.0.255 area 0
+ passive-interface vlan 10
+ passive-interface vlan 20
+ passive-interface vlan 30
+ passive-interface vlan 40
+ passive-interface vlan 50
+ passive-interface vlan 60
+ passive-interface vlan 99
+ auto-cost reference-bandwidth 1000
+ exit
+
+interface vlan 10
+ip ospf 43 area 0 
+interface vlan 20
+ip ospf 43 area o
+interface vlan 30
+ip ospf 43 area o 
+interface vlan 40
+ip ospf 43 area  0
+interface  vlan 60 
+ip ospf 43 area o 
+interface vlan 99 
+ip ospf 43 area 0 
+
+interface gigabitEthernet0/1
+ ip ospf network point-to-point
+ exit
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+----------------------------------------------------------------------------------------------------------
+S8
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
+
+line vty 0 15
+enable secret Class123 
+ password Telnet123
+ login
+ transport input ssh
+
+ ip access-list standard ACCESOVTY 
+ permit host 172.16.2.67
+ line vty 0 9 
+ access-class ACCESOVTY in
+ exit
+----------------------------------------------------------------------------------------------------------
+Todos los Router y Switch 
+ntp server 172.16.0.10
+service timestamps log datetime msec
+logging 172.16.2.100
